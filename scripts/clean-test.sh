@@ -35,4 +35,10 @@ if systemctl is-active --quiet pnetlab-brokerd; then
     echo " -> pnetlab-brokerd đã được nạp lại code mới."
 fi
 
+# Chạy tự động Smoke Test nếu có cờ --smoke hoặc có script
+if [ "$1" == "--smoke" ] || [ -f "$(dirname "$0")/smoke-test.py" ]; then
+    echo ""
+    python3 "$(dirname "$0")/smoke-test.py"
+fi
+
 echo "✅ Môi trường ảo hóa đã sạch 100%! Bạn có thể test logic mới ngay."

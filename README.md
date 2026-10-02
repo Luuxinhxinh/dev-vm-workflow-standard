@@ -152,8 +152,47 @@ Khi thành viên khác nhận file `.ova` về máy:
 
 ---
 
-## 🛡️ PHẦN III: NGUYÊN TẮC VÀNG (RULES) TRÁNH XUNG ĐỘT
+## 🛡️ PHẦN III: QUY TRÌNH REFACTOR AN TOÀN, CÔ LẬP LỖI & BACKUP TỨC THÌ
 
-1. **Khóa nhánh `main`:** Chỉ merge code qua Pull Request khi code đã test chạy thành công trên máy ảo cá nhân.
+Khi thực hiện **Refactor kiến trúc lớn** (như nâng cấp Slim Framework, xóa bỏ `exec()` chuyển sang Broker, chuẩn hóa Database):
+
+### 1. Chiến lược "Lưới an toàn" trước khi Refactor (Safety Snapshot)
+1. **Chụp Snapshot máy ảo (Mất 2 giây):**
+   * Trong VMware/VirtualBox, trước khi sửa một module cốt lõi: Chuột phải vào VM -> **Take Snapshot** -> Đặt tên: `Before-Refactor-<Module>`.
+   * Nếu quá trình refactor làm sập cấu hình Linux hoặc hỏng sâu: Chuột phải -> **Revert to Snapshot** -> Môi trường trở lại nguyên vẹn 100% trong vòng **5 giây**.
+2. **Cô lập theo nhánh Git (Branch Isolation):**
+   * Không bao giờ refactor nhiều thứ cùng lúc. Tách nhỏ từng phần:
+     * Nhánh 1: `refactor/slim4-psr15` (Chỉ đổi router)
+     * Nhánh 2: `refactor/unl-wrapper-broker` (Chỉ đổi cách gọi lệnh đặc quyền)
+   * Nhánh nào xong và chạy đạt thì merge nhánh đó trước.
+
+---
+
+### 2. Quy trình Test 3 Tầng Tự động khi Refactor
+Thay vì bấm tay kiểm tra, sử dụng bộ công cụ tự động có sẵn:
+
+* **Tầng 1: Linting & Syntax (0.5 giây):**
+  Chạy kiểm tra cú pháp toàn bộ file PHP/Python:
+  ```bash
+  python3 ./scripts/smoke-test.py
+  ```
+* **Tầng 2: Smoke Test tích hợp Broker & Socket (2 giây):**
+  Chạy dọn rác và kiểm tra tự động xem Broker có nhận lệnh, socket có thông:
+  ```bash
+  sudo ./scripts/clean-test.sh
+  ```
+* **Tầng 3: Rollback tức thời bằng Git khi sai sót:**
+  Nếu code thử nghiệm bị gãy logic hoặc không đi đúng hướng:
+  ```bash
+  # Hủy toàn bộ thay đổi chưa commit, quay về mốc ban đầu
+  git reset --hard HEAD
+  git clean -fd
+  ```
+
+---
+
+## 🔒 PHẦN IV: NGUYÊN TẮC VÀNG (RULES) CHO CẢ NHÓM
+
+1. **Khóa nhánh `main`:** Chỉ merge code qua Pull Request khi code đã vượt qua `smoke-test.py` trên máy ảo cá nhân.
 2. **Không commit file rác / file nặng:** Không commit image QEMU (`.qcow2`), IOL (`.bin`), file log, session vào Git (file `.gitignore` đã chặn sẵn).
 3. **Độc lập tài nguyên:** Máy ai người nấy gánh CPU/RAM, hỏng máy ảo cá nhân chỉ cần rollback Snapshot trong 5 giây mà không làm gián đoạn công việc của cả nhóm.
