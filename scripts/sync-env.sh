@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Script: sync-env.sh
-# Mục đích: Đồng bộ code từ Git, tự động cập nhật môi trường và restart service
+# Mục đích: Đồng bộ code từ Git, tự động chuẩn hóa phân quyền và restart service
 # Cách dùng: sudo ./scripts/sync-env.sh [nhánh-git]
 # ==============================================================================
 
@@ -13,7 +13,7 @@ echo "=========================================================="
 echo " [1/5] Kéo mã nguồn mới nhất từ Git (nhánh: $BRANCH)..."
 echo "=========================================================="
 git fetch origin
-git pull origin "$BRANCH"
+git pull --ff-only origin "$BRANCH"
 
 echo "=========================================================="
 echo " [2/5] Cập nhật thư viện Python cho Privilege Broker..."
@@ -36,6 +36,14 @@ if [ -d "/opt/unetlab/html" ]; then
     chown -R www-data:www-data /opt/unetlab/html
     chmod -R 775 /opt/unetlab/html
 fi
+
+if [ -d "/opt/unetlab/data" ]; then
+    chown -R www-data:www-data /opt/unetlab/data
+    chmod -R 775 /opt/unetlab/data
+fi
+
+mkdir -p /run/pnetlab
+chmod 777 /run/pnetlab
 
 echo "=========================================================="
 echo " [5/5] Khởi động lại các daemon dịch vụ..."
